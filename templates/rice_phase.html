@@ -1,0 +1,976 @@
+{% extends "base.html" %}
+
+{% block title %}Klasifikasi Fenologi Padi - Model Random Forest{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Definisi variabel CSS fallback */
+    :root {
+        --light-color: #f8f9fa;
+        --border-radius: 0.5rem;
+        --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        --primary-color: #1976D2;
+        --secondary-color: #42A5F5;
+        --accent-color: #2196F3;
+        --transition: all 0.3s ease;
+    }
+
+    .controls-section {
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        border: 1px solid #e9ecef;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    .controls-section h6 {
+        color: #1976D2;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        border-bottom: 2px solid #42A5F5;
+        padding-bottom: 0.5rem;
+        display: block !important;
+        visibility: visible !important;
+    }
+
+    .legend-container {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-top: 1.25rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid #e9ecef;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .stats-summary {
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #1976D2;
+        margin-bottom: 0.25rem;
+    }
+    
+    .progress {
+        border-radius: 4px;
+        background-color: #e9ecef;
+    }
+    
+    .progress-bar {
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+    
+    .stats-footer {
+        border-top: 1px solid #dee2e6;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+    }
+    
+    /* Responsive typography for statistics */
+    .stats-responsive-text {
+        font-size: 0.75rem;
+    }
+    
+    .stats-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .stats-value {
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .stats-percentage {
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+
+    .legend-item:hover {
+        background-color: #f8f9fa;
+        border-color: #2196F3;
+        transform: translateX(2px);
+    }
+
+    .legend-color {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-right: 0.75rem;
+        border: 2px solid #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        flex-shrink: 0;
+    }
+
+    .map-container {
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        min-height: 500px;
+    }
+
+    .info-panel {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-top: 1.25rem;
+        border: 1px solid #e9ecef;
+    }
+
+    .stats-container {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-top: 1.25rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border: 1px solid #e9ecef;
+    }
+
+    .model-info {
+        background: #e3f2fd;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+        border-left: 4px solid #2196F3;
+    }
+
+    .dasarian-slider {
+        margin: 1rem 0;
+        width: 100% !important;
+        display: block !important;
+    }
+
+    .dasarian-value {
+        font-weight: 600;
+        color: #2196F3;
+        font-size: 1.125rem;
+        display: inline-block !important;
+    }
+
+    .form-range {
+        width: 100% !important;
+        height: 8px;
+        background: linear-gradient(to right, #e9ecef 0%, #e9ecef 100%);
+        border-radius: 5px;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    .form-range::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #1976D2, #42A5F5);
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-range::-webkit-slider-thumb:hover {
+        background: linear-gradient(45deg, #42A5F5, #1976D2);
+        transform: scale(1.1);
+        transition: all 0.2s ease;
+    }
+
+    .form-range::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #1976D2, #42A5F5);
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-range::-webkit-slider-track {
+        background: linear-gradient(to right, #2196F3 0%, #42A5F5 100%);
+        height: 8px;
+        border-radius: 5px;
+    }
+
+    .form-range::-moz-range-track {
+        background: linear-gradient(to right, #2196F3 0%, #42A5F5 100%);
+        height: 8px;
+        border-radius: 5px;
+        border: none;
+    }
+
+    .floating-controls {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+    }
+
+    .floating-btn {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin: 0.5rem 0;
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-group-responsive .btn {
+        flex: 1;
+        min-width: 0;
+        margin: 0.25rem;
+    }
+
+    @media (max-width: 768px) {
+        .floating-controls {
+            bottom: 1rem;
+            right: 1rem;
+        }
+        
+        .floating-btn {
+            width: 45px;
+            height: 45px;
+        }
+        
+        .col-md-4, .col-md-8 {
+            margin-bottom: 1rem;
+        }
+        
+        .btn-group-responsive {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .legend-container {
+            margin-top: 1rem;
+        }
+        
+        /* Responsive statistics text for mobile */
+        .stat-number {
+            font-size: 0.9rem;
+        }
+        
+        .stats-title {
+            font-size: 0.75rem;
+        }
+        
+        .stats-value {
+            font-size: 0.7rem;
+        }
+        
+        .stats-percentage {
+            font-size: 0.7rem;
+        }
+        
+        .stats-responsive-text {
+            font-size: 0.65rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.75rem;
+        }
+        
+        .stats-summary {
+            padding: 0.75rem;
+        }
+        
+        .stats-footer {
+            font-size: 0.65rem;
+            padding: 0.5rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        /* Extra small screens - further reduce text sizes */
+        .stat-number {
+            font-size: 0.8rem;
+        }
+        
+        .stats-title {
+            font-size: 0.7rem;
+        }
+        
+        .stats-value {
+            font-size: 0.65rem;
+        }
+        
+        .stats-percentage {
+            font-size: 0.65rem;
+        }
+        
+        .stats-responsive-text {
+            font-size: 0.6rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.7rem;
+        }
+        
+        .stats-summary {
+            padding: 0.5rem;
+        }
+        
+        .stats-footer {
+            font-size: 0.6rem;
+        }
+        
+        .table th, .table td {
+            padding: 0.25rem;
+        }
+    }
+    
+    @media (min-width: 1200px) {
+        /* Large screens - slightly larger text */
+        .stat-number {
+            font-size: 1.1rem;
+        }
+        
+        .stats-title {
+            font-size: 1rem;
+        }
+        
+        .stats-value {
+            font-size: 0.95rem;
+        }
+        
+        .stats-percentage {
+            font-size: 0.9rem;
+        }
+    }
+
+    /* Loading spinner styles */
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 2rem 1rem;
+    }
+    
+    .loading-spinner p {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    @media (max-width: 576px) {
+        .loading-spinner {
+            padding: 1rem 0.5rem;
+        }
+        
+        .loading-spinner p {
+            font-size: 0.75rem;
+        }
+        
+        .spinner-border {
+            width: 2rem;
+            height: 2rem;
+        }
+    }
+
+    .table-responsive {
+        border-radius: 0.5rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .table th {
+        background-color: #1976D2;
+        color: white;
+        border: none;
+        font-weight: 500;
+    }
+
+    .table td {
+        border-color: #e9ecef;
+        vertical-align: middle;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hidden data container for JavaScript -->
+<script type="application/json" id="dasarian-data">{{ dasarian_options|tojson|safe }}</script>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Control Panel -->
+        <div class="col-lg-4 col-md-5">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-1">
+                        <i class="fas fa-seedling"></i> Klasifikasi Fenologi Padi
+                    </h4>
+                    <small class="opacity-75">Menggunakan Model Random Forest</small>
+                </div>
+                <div class="card-body">
+                    
+                    <!-- Dasarian Controls -->
+                    <div class="controls-section">
+                        <h6><i class="fas fa-calendar"></i> Kontrol Dasarian</h6>
+                        
+                        <div class="mb-3">
+                            <label for="dasarianSlider" class="form-label">
+                                Pilih Dasarian: <span class="dasarian-value" id="dasarianValue">{{ current_dasarian or 1 }}</span>
+                            </label>
+                            <input type="range" class="form-range dasarian-slider" 
+                                   id="dasarianSlider" min="1" max="36" 
+                                   value="{{ current_dasarian or 1 }}" 
+                                   oninput="updateDasarianValue(this.value)">
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>Jan P1</span>
+                                <span>Des P3</span>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="dasarianSelect" class="form-label">Atau pilih dari dropdown:</label>
+                            <select class="form-select form-select-sm" id="dasarianSelect">
+                                {% for dasarian in dasarian_options %}
+                                <option value="{{ dasarian.dasarian }}" 
+                                        {% if dasarian.dasarian == (current_dasarian or 1) %}selected{% endif %}>
+                                    {{ dasarian.display_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-sm w-100" onclick="classifySingleDasarian()">
+                            <i class="fas fa-play"></i> Mulai Klasifikasi
+                        </button>
+                    </div>
+                    
+                    <!-- Date Controls -->
+                    <div class="controls-section">
+                        <h6><i class="fas fa-calendar-alt"></i> Kontrol Tanggal</h6>
+                        
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label for="startDate" class="form-label">Mulai:</label>
+                                <input type="date" class="form-control form-control-sm" id="startDate">
+                            </div>
+                            <div class="col-6">
+                                <label for="endDate" class="form-label">Akhir:</label>
+                                <input type="date" class="form-control form-control-sm" id="endDate">
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-warning btn-sm w-100" onclick="classifyByDate()">
+                            <i class="fas fa-clock"></i> Klasifikasi by Tanggal
+                        </button>
+                    </div>
+                    
+                    <!-- Analysis Tools -->
+                    <div class="controls-section">
+                        <h6><i class="fas fa-chart-bar"></i> Tools Lainnya</h6>
+                        
+                        <div class="btn-group-responsive">
+                            <button class="btn btn-secondary btn-sm w-100" onclick="resetView()">
+                                <i class="fas fa-refresh"></i> Reset View
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Legend -->
+                    <div class="legend-container">
+                        <h6><i class="fas fa-map-signs"></i> Legenda Fase Padi</h6>
+                        {% for label, color in legend_items %}
+                        <div class="legend-item">
+                            <div class="legend-color" data-color="{{ color }}"></div>
+                            <span class="small">{{ label }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Info Panel -->
+                    <div class="info-panel">
+                        <h6><i class="fas fa-info-circle"></i> Informasi Klasifikasi</h6>
+                        <div id="classificationInfo">
+                            <p class="small mb-0">Pilih dasarian untuk memulai klasifikasi</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics -->
+                    <div class="stats-container" id="statsContainer" style="display: none;">
+                        <h6><i class="fas fa-chart-pie"></i> Statistik Area</h6>
+                        <div id="statsContent"></div>
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div class="loading-spinner" id="loadingSpinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 small">Memproses klasifikasi...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Panel -->
+        <div class="col-lg-8 col-md-7">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-1">
+                        <i class="fas fa-globe"></i> Peta Klasifikasi Fenologi Padi
+                    </h5>
+                    <small class="opacity-75">Hasil klasifikasi akan ditampilkan di sini</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="map-container" id="mapContainer">
+                        {{ map_html|safe }}
+                    </div>
+                    
+                    <!-- Map Info -->
+                    <div class="p-3">
+                        <div class="alert alert-info mb-0" id="mapAlert">
+                            <i class="fas fa-lightbulb"></i>
+                            <strong>Tips:</strong> Gunakan kontrol di panel kiri untuk memfilter dan menganalisis data berdasarkan dasarian atau tanggal.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Action Buttons -->
+<div class="floating-controls d-none d-md-block">
+    <button class="floating-btn btn btn-primary" onclick="scrollToTop()" title="Ke Atas">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+    <button class="floating-btn btn btn-success" onclick="toggleFullscreen()" title="Fullscreen Map">
+        <i class="fas fa-expand"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Global variables
+let currentDasarian = parseInt('{{ current_dasarian|default(1) }}') || 1;
+let isLoading = false;
+
+// Dasarian options loaded from JSON data
+let dasarianOptions = [];
+
+// Load dasarian options from HTML data
+function loadDasarianOptions() {
+    try {
+        const dataElement = document.getElementById('dasarian-data');
+        if (dataElement) {
+            dasarianOptions = JSON.parse(dataElement.textContent);
+        }
+    } catch (error) {
+        console.error('Error loading dasarian options:', error);
+        dasarianOptions = [];
+    }
+}
+
+// Update dasarian value display
+function updateDasarianValue(value) {
+    currentDasarian = parseInt(value) || 1; // Fallback ke 1 jika parsing gagal
+    const dasarianInfo = dasarianOptions.find(d => d.dasarian == currentDasarian);
+    
+    document.getElementById('dasarianValue').textContent = 
+        dasarianInfo ? dasarianInfo.display_name : currentDasarian;
+    document.getElementById('dasarianSelect').value = currentDasarian;
+    
+    // Update info
+    updateDasarianInfo(currentDasarian);
+}
+
+// Update dasarian info
+function updateDasarianInfo(dasarian) {
+    const validDasarian = dasarian || currentDasarian || 1;
+    const dasarianInfo = dasarianOptions.find(d => d.dasarian == validDasarian);
+    
+    if (dasarianInfo) {
+        const info = `
+            <p class="mb-1"><strong>${dasarianInfo.full_name}</strong></p>
+            <p class="small mb-0 text-muted">${dasarianInfo.month_name} Periode ${dasarianInfo.period}</p>
+        `;
+        document.getElementById('classificationInfo').innerHTML = info;
+    } else {
+        document.getElementById('classificationInfo').innerHTML = 
+            `<p class="small mb-0">Dasarian ${validDasarian} dipilih</p>`;
+    }
+}
+
+// Show loading
+function showLoading() {
+    if (isLoading) return;
+    isLoading = true;
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('mapAlert').className = 'alert alert-warning mb-0';
+    document.getElementById('mapAlert').innerHTML = 
+        '<i class="fas fa-spinner fa-spin"></i> <strong>Processing...</strong> Sedang memproses klasifikasi...';
+}
+
+// Hide loading
+function hideLoading() {
+    isLoading = false;
+    document.getElementById('loadingSpinner').style.display = 'none';
+}
+
+// Show success message
+function showSuccess(message) {
+    document.getElementById('mapAlert').className = 'alert alert-success mb-0';
+    document.getElementById('mapAlert').innerHTML = 
+        `<i class="fas fa-check-circle"></i> <strong>Berhasil!</strong> ${message}`;
+}
+
+// Show error message
+function showError(message) {
+    document.getElementById('mapAlert').className = 'alert alert-danger mb-0';
+    document.getElementById('mapAlert').innerHTML = 
+        `<i class="fas fa-exclamation-triangle"></i> <strong>Error!</strong> ${message}`;
+}
+
+// Classify single dasarian
+async function classifySingleDasarian() {
+    if (isLoading) return;
+    
+    const dasarian = document.getElementById('dasarianSlider').value;
+    const dasarianInfo = dasarianOptions.find(d => d.dasarian == dasarian);
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/get_classification_map_dasarian', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dasarian: parseInt(dasarian)
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update map
+            document.getElementById('mapContainer').innerHTML = data.map_html;
+            const displayName = dasarianInfo ? dasarianInfo.display_name : `Dasarian ${dasarian}`;
+            showSuccess(`Klasifikasi ${displayName} berhasil dimuat`);
+            updateDasarianInfo(dasarian);
+            
+            // Display statistics if available
+            if (data.area_stats) {
+                displayStatistics(data.area_stats);
+            }
+        } else {
+            showError(data.error || 'Gagal memuat klasifikasi');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Terjadi kesalahan saat memproses request');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Classify by date
+async function classifyByDate() {
+    if (isLoading) return;
+    
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        showError('Pilih tanggal mulai dan akhir');
+        return;
+    }
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/classify-by-date', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update map with new HTML
+            if (data.map_html) {
+                document.getElementById('mapContainer').innerHTML = data.map_html;
+            }
+            
+            showSuccess(`Klasifikasi periode ${startDate} - ${endDate} berhasil`);
+            
+            // Update info
+            document.getElementById('classificationInfo').innerHTML = `
+                <p class="mb-1"><strong>Periode Tanggal</strong></p>
+                <p class="small mb-0 text-muted">${startDate} - ${endDate}</p>
+            `;
+            
+            if (data.stats) {
+                displayStatistics(data.stats);
+            } else if (data.area_stats) {
+                displayStatistics(data.area_stats);
+            }
+        } else {
+            showError(data.error || 'Gagal melakukan klasifikasi by tanggal');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showError('Terjadi kesalahan saat memproses klasifikasi tanggal');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Display statistics
+function displayStatistics(stats) {
+    const container = document.getElementById('statsContainer');
+    const content = document.getElementById('statsContent');
+    
+    if (!stats) {
+        content.innerHTML = '<p class="text-muted">Tidak ada data statistik</p>';
+        container.style.display = 'block';
+        return;
+    }
+    
+    // Check if stats has the new format (from calculate_area_statistics)
+    if (stats.class_distribution && stats.total_area_hectares) {
+        // New format with detailed statistics
+        let statsHtml = `
+            <div class="stats-summary mb-3">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h6 class="stat-number">${stats.number_of_classes}</h6>
+                            <small class="text-muted stats-responsive-text">Kelas Ditemukan</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h6 class="stat-number">${stats.total_area_hectares.toLocaleString()} ha</h6>
+                            <small class="text-muted stats-responsive-text">Total Area</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="stat-item">
+                            <h6 class="stat-number">${stats.class_distribution[0]?.class_name || 'N/A'}</h6>
+                            <small class="text-muted stats-responsive-text">Fase Dominan</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        statsHtml += '<div class="table-responsive"><table class="table table-sm table-striped">';
+        statsHtml += '<thead><tr><th class="stats-title">Fase Padi</th><th class="stats-title">Area (ha)</th><th class="stats-title">Persentase</th></tr></thead><tbody>';
+        
+        // Display each class from distribution
+        stats.class_distribution.forEach(classData => {
+            const progressWidth = Math.max(classData.percentage, 2); // Minimum 2% width for visibility
+            
+            statsHtml += `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <span class="legend-color me-2" style="background-color: ${classData.color}; width: 16px; height: 16px; display: inline-block; border-radius: 3px; border: 1px solid #ddd;"></span>
+                            <strong class="stats-title">${classData.class_name}</strong>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="fw-bold stats-value">${classData.area_hectares.toLocaleString()}</span>
+                        <small class="text-muted d-block stats-responsive-text">${(classData.area_hectares * 10000).toLocaleString()} m²</small>
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="progress me-2" style="width: 60px; height: 8px;">
+                                <div class="progress-bar" style="width: ${progressWidth}%; background-color: ${classData.color};"></div>
+                            </div>
+                            <strong class="stats-percentage" style="color: ${classData.color};">${classData.percentage}%</strong>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        statsHtml += '</tbody></table></div>';
+        
+        // Add additional info
+        statsHtml += `
+            <div class="stats-footer mt-3 p-2" style="background-color: #f8f9fa; border-radius: 0.25rem;">
+                <small class="text-muted stats-responsive-text">
+                    <i class="fas fa-info-circle"></i> 
+                    Statistik berdasarkan ${stats.total_pixels?.toLocaleString() || 'N/A'} piksel dengan resolusi spasial 
+                </small>
+            </div>
+        `;
+        
+        content.innerHTML = statsHtml;
+    } 
+    else if (stats.classification) {
+        // Old format - keep for backward compatibility
+        const histogram = stats.classification;
+        let statsHtml = '<div class="table-responsive"><table class="table table-sm table-striped">';
+        statsHtml += '<thead><tr><th class="stats-title">Fase</th><th class="stats-title">Pixel</th><th class="stats-title">%</th></tr></thead><tbody>';
+        
+        const labels = ['Unknown', 'Air', 'Early Vegetatif', 'Vegetatif 1', 'Vegetatif 2', 'Generatif 1', 'Generatif 2', 'Bare'];
+        const colors = ['#000000', '#00FFFF', '#FFD700', '#32CD32', '#FF1493', '#FF4500', '#4B0082', '#8B4513'];
+        
+        let totalPixels = 0;
+        Object.values(histogram).forEach(value => {
+            if (typeof value === 'number' && !isNaN(value)) {
+                totalPixels += value;
+            }
+        });
+        
+        // Hanya tampilkan fase yang ada (nilai > 0 dan valid)
+        Object.entries(histogram).forEach(([key, value]) => {
+            const classIndex = parseInt(key);
+            
+            // Validasi: pastikan classIndex adalah angka valid dan value > 0
+            if (!isNaN(classIndex) && typeof value === 'number' && !isNaN(value) && value > 0) {
+                const label = labels[classIndex] || `Class ${classIndex}`;
+                const color = colors[classIndex] || '#999999';
+                const percentage = totalPixels > 0 ? ((value / totalPixels) * 100).toFixed(1) : '0.0';
+                
+                statsHtml += `
+                    <tr>
+                        <td>
+                            <span class="legend-color" style="background-color: ${color}; width: 14px; height: 14px; display: inline-block; margin-right: 0.5rem;"></span>
+                            <span class="stats-title">${label}</span>
+                        </td>
+                        <td class="stats-value">${value.toLocaleString()}</td>
+                        <td><strong class="stats-percentage">${percentage}%</strong></td>
+                    </tr>
+                `;
+            }
+        });
+        
+        statsHtml += '</tbody></table></div>';
+        content.innerHTML = statsHtml;
+    }
+    else {
+        content.innerHTML = '<p class="text-muted stats-responsive-text">Format data statistik tidak dikenali</p>';
+    }
+    
+    container.style.display = 'block';
+}
+
+// Reset view
+function resetView() {
+    if (isLoading) return;
+    
+    document.getElementById('mapAlert').className = 'alert alert-info mb-0';
+    document.getElementById('mapAlert').innerHTML = 
+        '<i class="fas fa-lightbulb"></i> <strong>Tips:</strong> Gunakan kontrol di panel kiri untuk memfilter dan menganalisis data berdasarkan dasarian atau tanggal.';
+    
+    document.getElementById('statsContainer').style.display = 'none';
+    document.getElementById('classificationInfo').innerHTML = 
+        '<p class="small mb-0">Pilih dasarian untuk memulai klasifikasi</p>';
+    
+    // Reset form values
+    document.getElementById('dasarianSlider').value = 1;
+    document.getElementById('dasarianSelect').value = 1;
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    updateDasarianValue(1);
+}
+
+// Scroll to top
+function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Toggle fullscreen map
+function toggleFullscreen() {
+    const mapContainer = document.getElementById('mapContainer');
+    
+    if (!document.fullscreenElement) {
+        mapContainer.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Load dasarian options first
+    loadDasarianOptions();
+    
+    updateDasarianInfo(currentDasarian);
+    
+    // Initialize legend colors
+    document.querySelectorAll('.legend-color').forEach(function(element) {
+        const color = element.getAttribute('data-color');
+        if (color) {
+            element.style.backgroundColor = color;
+        }
+    });
+    
+    // Sync slider with select dropdown
+    document.getElementById('dasarianSelect').addEventListener('change', function() {
+        document.getElementById('dasarianSlider').value = this.value;
+        updateDasarianValue(this.value);
+    });
+    
+    // Set default dates (last 30 days)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+    
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(event) {
+    if (event.ctrlKey) {
+        switch(event.key) {
+            case '1':
+                event.preventDefault();
+                classifySingleDasarian();
+                break;
+            case 'r':
+                event.preventDefault();
+                resetView();
+                break;
+        }
+    }
+});
+</script>
+{% endblock %}

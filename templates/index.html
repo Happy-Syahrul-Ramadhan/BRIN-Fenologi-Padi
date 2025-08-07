@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Beranda - Klasifikasi Fenologi Padi{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Full width hero section */
+    body {
+        overflow-x: hidden;
+    }
+    
+    .hero-section {
+        background: linear-gradient(135deg, rgba(25, 118, 210, 0.9) 0%, rgba(66, 165, 245, 0.9) 100%), 
+                    url('https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 5rem 0 4rem 0;
+        margin: 0 0 2rem 0;
+        border-radius: 0;
+        position: relative;
+        overflow: hidden;
+        width: 100vw;
+        margin-left: calc(-50vw + 50%);
+        margin-top: 80px;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-subtitle {
+        font-size: 1.4rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        display: block;
+        color: #FFD700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .hero-buttons {
+        margin-top: 2rem;
+    }
+
+    .btn-hero {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        margin: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-hero:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary-hero {
+        background: linear-gradient(45deg, #FFD700, #FFA000);
+        border: none;
+        color: #1976D2;
+        font-weight: 700;
+    }
+
+    .btn-primary-hero:hover {
+        background: linear-gradient(45deg, #FFA000, #FF8F00);
+        color: #1976D2;
+    }
+
+    .btn-outline-hero {
+        background: rgba(255, 215, 0, 0.1);
+        border: 2px solid #FFD700;
+        color: #FFD700;
+        backdrop-filter: blur(10px);
+    }
+
+    .btn-outline-hero:hover {
+        background: rgba(255, 215, 0, 0.2);
+        color: #FFD700;
+        border-color: #FFA000;
+    }
+
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+        
+        .hero-stats {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+    }
+
+    .feature-icon {
+        background: linear-gradient(45deg, #1976D2, #42A5F5);
+        color: white;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        box-shadow: 0 4px 15px rgba(25, 118, 210, 0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10 text-center hero-content">
+                <h1 class="hero-title">
+                    <i class="fas fa-seedling me-3"></i>
+                    Selamat Datang di Aplikasi Klasifikasi Fenologi Padi
+                </h1>
+                <p class="hero-subtitle">
+                    Sistem monitoring dan analisis fase pertumbuhan padi menggunakan teknologi 
+                    <strong>Machine Learning</strong> dan data satelit <strong>Sentinel-1</strong>
+                </p>
+                
+                <div class="hero-buttons">
+                    <a href="/rice-phase" class="btn btn-primary-hero btn-hero">
+                        <i class="fas fa-rocket me-2"></i>
+                        Mulai Klasifikasi
+                    </a>
+                    <a href="#features" class="btn btn-outline-hero btn-hero">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Pelajari Lebih Lanjut
+                    </a>
+                </div>
+                
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">6</span>
+                        <div class="stat-label">Fase Klasifikasi</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">36</span>
+                        <div class="stat-label">Periode Dasarian</div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">24/7</span>
+                        <div class="stat-label">Monitoring</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-satellite"></i> 
+                        Citra Satelit Sentinel-1 dengan Indeks Spektral pada Lahan Baku Sawah di Kabupaten Indramayu
+                    </h4>
+                    <small class="opacity-75">Visualisasi data radar untuk analisis fenologi padi</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="map-container" style="border-radius: 0 0 12px 12px; overflow: hidden;">
+                        {{ map_html|safe }}
+                    </div>
+                    
+                    <!-- Map Info -->
+                    <div class="p-4">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle"></i>
+                                    <strong>Informasi:</strong> 
+                                    Peta menampilkan komposit citra Sentinel-1 dengan indeks spektral. 
+                                    Gunakan menu navigasi untuk mengakses fitur klasifikasi fenologi padi.
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-grid">
+                                    <a href="/rice-phase" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-map"></i> Mulai Klasifikasi
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Feature Cards -->
+    <div id="features" class="row mt-4">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Model Random Forest</h5>
+                    <p class="text-muted">Menggunakan algoritma machine learning untuk klasifikasi otomatis fase pertumbuhan padi dengan akurasi tinggi</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="fas fa-satellite-dish fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Data Sentinel-1</h5>
+                    <p class="text-muted">Memanfaatkan data radar SAR untuk monitoring pertanian sepanjang waktu tanpa terpengaruh cuaca</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <h5 class="card-title">Analisis Temporal</h5>
+                    <p class="text-muted">Monitoring perubahan fase padi berdasarkan periode dasarian dan analisis berdasarkan tanggal</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Smooth scrolling for anchor links
+document.addEventListener('DOMContentLoaded', function() {
+    const scrollLinks = document.querySelectorAll('a[href^="#"]');
+    
+    scrollLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+    
+    // Add animation to feature cards
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
+            }
+        });
+    }, observerOptions);
+    
+    document.querySelectorAll('.card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        observer.observe(card);
+    });
+});
+</script>
+
+<style>
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %}
