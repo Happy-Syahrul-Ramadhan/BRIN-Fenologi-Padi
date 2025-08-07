@@ -24,17 +24,7 @@ Aplikasi web untuk klasifikasi fenologi (fase pertumbuhan) padi menggunakan data
 - 36 periode dasarian dalam satu tahun (Januari P1 - Desember P3)
 - Interface slider dan dropdown untuk pemilihan periode
 
-### 📅 Klasifikasi Berdasarkan Tanggal
-- Klasifikasi menggunakan rentang tanggal custom
-- Data real-time dari Sentinel-1
-- Fleksibilitas dalam pemilihan periode analisis
-
 ### 🎯 Fase Pertumbuhan Padi
-Aplikasi dapat mengidentifikasi 4 fase utama:
-- **Vegetatif 1** (Hijau Muda) - Fase awal pertumbuhan
-- **Vegetatif 2** (Hijau Tua) - Fase pertumbuhan intensif
-- **Generatif 1** (Kuning) - Fase pembungaan
-- **Generatif 2** (Coklat) - Fase pematangan
 
 ### 📊 Analisis dan Statistik
 - Perhitungan area per fase dalam hektar
@@ -111,7 +101,6 @@ pip install flask
 pip install earthengine-api
 pip install geemap
 pip install scikit-learn
-pip install joblib
 pip install numpy
 pip install pandas
 ```
@@ -120,9 +109,6 @@ pip install pandas
 ```bash
 earthengine authenticate
 ```
-
-### 5. Verifikasi Model
-Pastikan file `rf_model.pkl` tersedia di root directory.
 
 ## ⚙️ Konfigurasi
 
@@ -177,19 +163,6 @@ Akses aplikasi di: http://localhost:5000
 3. Tunggu proses loading
 4. Lihat hasil di peta dan panel statistik
 
-#### Klasifikasi Tanggal:
-1. Pilih tanggal mulai dan akhir
-2. Klik tombol "Klasifikasi by Tanggal"
-3. Sistem akan menggunakan data Sentinel-1 real-time
-4. Hasil ditampilkan dengan statistik area
-
-### 4. Interpretasi Hasil
-
-#### Warna dan Fase:
-- 🟢 **Hijau Muda**: Vegetatif 1 (Masa tanam awal)
-- 🟢 **Hijau Tua**: Vegetatif 2 (Pertumbuhan aktif)
-- 🟡 **Kuning**: Generatif 1 (Pembungaan)
-- 🟤 **Coklat**: Generatif 2 (Pematangan/panen)
 
 #### Panel Statistik:
 - Total area per fase dalam hektar
@@ -446,7 +419,6 @@ pytest --cov=app tests/
 
 ### Version 1.0.0 (Current)
 - ✅ Klasifikasi dasarian dengan asset collection
-- ✅ Klasifikasi berdasarkan tanggal real-time
 - ✅ Visualisasi peta interaktif
 - ✅ Statistik area dan distribusi fase
 - ✅ Responsive web interface
@@ -463,24 +435,10 @@ pytest --cov=app tests/
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
-## 👥 Tim Pengembang
-
-**BRIN (Badan Riset dan Inovasi Nasional)**
-- Peneliti: [Nama Peneliti]
-- Developer: Happy Syahrul Ramadhan
-- Supervisor: [Nama Supervisor]
-
-## 📞 Kontak
-
-- **Email**: [email@brin.go.id]
-- **GitHub**: [Happy-Syahrul-Ramadhan](https://github.com/Happy-Syahrul-Ramadhan)
-- **Project Link**: [https://github.com/Happy-Syahrul-Ramadhan/intern-BRIN-fenologi-padi](https://github.com/Happy-Syahrul-Ramadhan/intern-BRIN-fenologi-padi)
-
 ## 🙏 Acknowledgments
 
 - Google Earth Engine Team untuk platform cloud computing
 - Sentinel-1 Mission untuk data SAR berkualitas tinggi
-- BRIN untuk dukungan penelitian dan pengembangan
 - Komunitas open source untuk libraries yang digunakan
 
 ---
