@@ -1,0 +1,14 @@
+[tool.pyright]
+include = ["app.py", "templates/"]
+exclude = ["**/__pycache__"]
+pythonVersion = "3.13"
+pythonPlatform = "Windows"
+
+reportMissingImports = false
+reportOptionalOperand = "warning"
+reportArgumentType = "warning"
+reportAttributeAccessIssue = "warning"
+reportUnusedExcept = false
+reportGeneralTypeIssues = "warning"
+reportIncompatibleMethodOverride = false
+reportIncompatibleVariableOverride = false

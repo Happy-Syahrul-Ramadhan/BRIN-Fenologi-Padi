@@ -1,0 +1,30 @@
+{
+    "python.defaultInterpreterPath": "C:\\Users\\Fauzan Rahman\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "python.terminal.activateEnvironment": false,
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "python.analysis.extraPaths": [
+        "C:\\Users\\Fauzan Rahman\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages",
+        "./stubs"
+    ],
+    "python.analysis.stubPath": "./stubs",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingImports": "none",
+        "reportOptionalOperand": "warning",
+        "reportArgumentType": "warning", 
+        "reportAttributeAccessIssue": "none",
+        "reportUnusedExcept": "none",
+        "reportGeneralTypeIssues": "warning",
+        "reportUnknownMemberType": "none",
+        "reportUnknownVariableType": "none",
+        "reportPossiblyUnboundVariable": "warning"
+    },
+    "files.associations": {
+        "*.py": "python"
+    }
+}
