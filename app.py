@@ -23,7 +23,7 @@ BANDS_SELECTED = ['VV_int', 'VH_int', 'RPI', 'API', 'NDPI', 'RVI', 'angle']
 
 # Warna berdasarkan siklus pertumbuhan padi: vegetatif -> generatif
 # Hijau muda -> Hijau tua -> Kuning -> Coklat
-PALET_RICE_PHASES = ['#90EE90', '#32CD32', '#FFD700', '#8B4513']  # Light Green, Green, Gold, Brown
+PALET_RICE_PHASES = ['#32CD32', '#FF1493', '#FF4500', '#4B0082']  # Light Green, Green, Gold, Brown
 RICE_PHASE_ORDER = ['vegetatif 1', 'vegetatif 2', 'generatif 1', 'generatif 2']  # Urutan siklus pertumbuhan
 
 PALET = ['#00FFFF', '#FFD700', '#32CD32', '#FF1493', '#FF4500', '#4B0082', '#8B4513']  # untuk backward compatibility
@@ -567,6 +567,10 @@ def classify_with_dasarian_filter_asset(dasarian_start=1, dasarian_end=36):
         else:
             # Untuk range dasarian, ambil median dari collection
             total_images = collection.size().getInfo()
+            if total_images is None or total_images == 0:
+                logger.error("No images found in collection")
+                return None
+                
             start_idx = max(0, dasarian_start - 1)
             end_idx = min(total_images - 1, dasarian_end - 1)
             
@@ -677,6 +681,7 @@ def calculate_area_statistics(classified_image, scale=SCALE):
         class_stats = {}
         total_pixels = 0
         total_area_hectares = 0
+        total_area_m2 = 0  # Initialize total_area_m2
         
         if 'classification' in histogram and histogram['classification']:
             bucket_means = histogram['classification']['bucketMeans']
@@ -789,16 +794,8 @@ def create_map(with_classification=False, dasarian_filter=None, start_date=None,
     # Add satellite basemap
     my_map.add_basemap('SATELLITE')
     
-    # Set map style
-    my_map.style = {
-        'position': 'relative',
-        'width': '100%',
-        'height': '500px',
-        'margin': '10px 0',
-        'border': '2px solid #ddd',
-        'border-radius': '8px',
-        'overflow': 'hidden'
-    }
+    # Note: geemap Map doesn't support direct style assignment
+    # Style is controlled through the Map initialization parameters
     
     if with_classification:
         try:
@@ -1333,6 +1330,10 @@ def collection_info():
         # Dapatkan sample properties
         sample_images = collection_with_indices.toList(3)
         sample_properties = []
+        
+        # Ensure total_size is valid
+        if total_size is None:
+            total_size = 0
         
         for i in range(min(3, total_size)):
             img = ee.Image(sample_images.get(i))

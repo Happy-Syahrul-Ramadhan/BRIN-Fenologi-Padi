@@ -500,12 +500,34 @@
                     <!-- Legend -->
                     <div class="legend-container">
                         <h6><i class="fas fa-map-signs"></i> Legenda Fase Padi</h6>
-                        {% for label, color in legend_items %}
                         <div class="legend-item">
-                            <div class="legend-color" data-color="{{ color }}"></div>
-                            <span class="small">{{ label }}</span>
+                            <div class="legend-color" style="background-color: #00FFFF;"></div>
+                            <span class="small">Air</span>
                         </div>
-                        {% endfor %}
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FFD700;"></div>
+                            <span class="small">Early Vegetatif</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #32CD32;"></div>
+                            <span class="small">Vegetatif 1</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FF1493;"></div>
+                            <span class="small">Vegetatif 2</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #FF4500;"></div>
+                            <span class="small">Generatif 1</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #4B0082;"></div>
+                            <span class="small">Generatif 2</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #8B4513;"></div>
+                            <span class="small">Bare</span>
+                        </div>
                     </div>
                     
                     <!-- Info Panel -->
@@ -779,10 +801,6 @@ function displayStatistics(stats) {
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="stat-item">
-                            <h6 class="stat-number">${stats.total_area_hectares.toLocaleString()} ha</h6>
-                            <small class="text-muted stats-responsive-text">Total Area</small>
-                        </div>
                     </div>
                     <div class="col-4">
                         <div class="stat-item">
@@ -795,7 +813,7 @@ function displayStatistics(stats) {
         `;
         
         statsHtml += '<div class="table-responsive"><table class="table table-sm table-striped">';
-        statsHtml += '<thead><tr><th class="stats-title">Fase Padi</th><th class="stats-title">Area (ha)</th><th class="stats-title">Persentase</th></tr></thead><tbody>';
+        statsHtml += '<thead><tr><th class="stats-title">Fase Padi</th><th class="stats-title">Persentase</th></tr></thead><tbody>';
         
         // Display each class from distribution
         stats.class_distribution.forEach(classData => {
@@ -808,10 +826,6 @@ function displayStatistics(stats) {
                             <span class="legend-color me-2" style="background-color: ${classData.color}; width: 16px; height: 16px; display: inline-block; border-radius: 3px; border: 1px solid #ddd;"></span>
                             <strong class="stats-title">${classData.class_name}</strong>
                         </div>
-                    </td>
-                    <td>
-                        <span class="fw-bold stats-value">${classData.area_hectares.toLocaleString()}</span>
-                        <small class="text-muted d-block stats-responsive-text">${(classData.area_hectares * 10000).toLocaleString()} m²</small>
                     </td>
                     <td>
                         <div class="d-flex align-items-center">
