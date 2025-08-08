@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 =======
 # 🌾 Aplikasi Klasifikasi Fenologi Padi
 
