@@ -86,18 +86,8 @@ git clone https://github.com/Happy-Syahrul-Ramadhan/intern-BRIN-fenologi-padi.gi
 cd intern-BRIN-fenologi-padi
 ```
 
-### 2. Setup Virtual Environment
-```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
 
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
+### 2. Install Dependencies
 ```bash
 pip install flask
 pip install earthengine-api
@@ -115,11 +105,12 @@ earthengine authenticate
 ## ⚙️ Konfigurasi
 
 ### Environment Variables
-Buat file `.env` di root directory:
+
+ubah file `.env.example` di root directory:
 ```env
 FLASK_ENV=development
 FLASK_DEBUG=True
-EE_PROJECT=try-spasial
+EE_PROJECT=your project ID
 ```
 
 ### Google Earth Engine Setup
@@ -127,7 +118,7 @@ EE_PROJECT=try-spasial
 2. Daftarkan project dengan nama `try-spasial`
 3. Upload assets yang diperlukan:
    - Training points: `projects/try-spasial/assets/output_shapefile`
-   - Image collection: `projects/try-spasial/assets/CollectionImage`
+   - Image collection: `your data asset image`
 
 ### Konfigurasi Aplikasi
 Edit parameter di `app.py`:
