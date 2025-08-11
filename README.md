@@ -30,7 +30,6 @@ Aplikasi web untuk klasifikasi fenologi (fase pertumbuhan) padi menggunakan data
 - Perhitungan area per fase dalam hektar
 - Distribusi persentase setiap fase
 - Visualisasi statistik dengan progress bar
-- Export data dalam format yang mudah dibaca
 
 ### 🗺️ Visualisasi Peta Interaktif
 - Peta berbasis Folium dengan kontrol layer
