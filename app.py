@@ -10,15 +10,18 @@ import numpy as np
 import pandas as pd
 import joblib
 import os
-from itertools import zip_longest as zip  
+from itertools import zip_longest as zip
+
+# Import konfigurasi dari file terpisah
+from config import config
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, config.LOG_LEVEL))
 logger = logging.getLogger(__name__)
 
-# Konfigurasi dan Parameter
-SCALE = 10
-MAX_TRAINING_POINTS = 2000
+# Konfigurasi dan Parameter - menggunakan config dari environment
+SCALE = config.SCALE
+MAX_TRAINING_POINTS = config.MAX_TRAINING_POINTS
 BANDS_SELECTED = ['VV_int', 'VH_int', 'RPI', 'API', 'NDPI', 'RVI', 'angle']
 
 # Warna berdasarkan siklus pertumbuhan padi: vegetatif -> generatif
@@ -128,9 +131,6 @@ def dasarian_to_date_range(dasarian):
     except:
         return None, None
 
-# Path model yang sudah dilatih
-MODEL_PATH = 'rf_model.pkl'  # Sesuaikan dengan lokasi model Anda
-
 # Global variable untuk menyimpan model yang sudah dimuat
 loaded_model = None
 
@@ -140,14 +140,14 @@ def load_trained_model():
     
     if loaded_model is None:
         try:
-            if os.path.exists(MODEL_PATH):
-                loaded_model = joblib.load(MODEL_PATH)
-                logger.info(f"Model berhasil dimuat dari {MODEL_PATH}")
+            if os.path.exists(config.MODEL_PATH):
+                loaded_model = joblib.load(config.MODEL_PATH)
+                logger.info(f"Model berhasil dimuat dari {config.MODEL_PATH}")
                 logger.info(f"Fitur yang digunakan: {loaded_model.feature_names_in_}")
                 logger.info(f"Jumlah kelas: {len(loaded_model.classes_)}")
                 logger.info(f"Kelas: {loaded_model.classes_}")
             else:
-                logger.error(f"File model tidak ditemukan: {MODEL_PATH}")
+                logger.error(f"File model tidak ditemukan: {config.MODEL_PATH}")
                 return None
         except Exception as e:
             logger.error(f"Error loading model: {str(e)}")
@@ -160,8 +160,8 @@ def get_indramayu_aoi():
     Mendefinisikan Area of Interest untuk Kabupaten Indramayu
     """
     try:
-        # Gunakan asset boundary Indramayu yang tersedia sebagai Image
-        aoi_asset = ee.Image("projects/ee-bayuardianto104/assets/Indramayu_Research/LBS_Kab_Indramayu")
+        # Gunakan asset boundary Indramayu dari konfigurasi environment
+        aoi_asset = ee.Image(config.INDRAMAYU_AOI_ASSET)
         # Ambil geometry dari bounds image
         aoi_geometry = aoi_asset.geometry()
         
@@ -472,9 +472,9 @@ def create_classifier_from_trained_model():
         return None
     
     try:
-        # Load training data untuk membuat classifier EE
-        titik_pelatihan = ee.FeatureCollection("projects/try-spasial/assets/output_shapefile")
-        koleksi_pelatihan = ee.ImageCollection("projects/try-spasial/assets/CollectionImage")
+        # Load training data dari konfigurasi environment
+        titik_pelatihan = ee.FeatureCollection(config.TRAINING_POINTS_ASSET)
+        koleksi_pelatihan = ee.ImageCollection(config.COLLECTION_ASSET)
         
         # Limit training points
         titik_pelatihan_limit = titik_pelatihan.limit(MAX_TRAINING_POINTS)
@@ -555,8 +555,8 @@ def classify_with_dasarian_filter_asset(dasarian_start=1, dasarian_end=36):
             logger.error("Classifier tidak tersedia")
             return None
         
-        # Load collection dari asset - langsung gunakan tanpa modifikasi
-        collection = ee.ImageCollection("projects/try-spasial/assets/CollectionImage")
+        # Load collection dari asset menggunakan konfigurasi environment
+        collection = ee.ImageCollection(config.COLLECTION_ASSET)
         
         # Untuk klasifikasi dasarian, gunakan pendekatan sederhana berdasarkan index
         if dasarian_start == dasarian_end:
@@ -861,21 +861,32 @@ def handle_ee_errors(f):
 # Inisialisasi aplikasi Flask
 app = Flask(__name__)
 
+# Earth Engine Initialization menggunakan konfigurasi dari environment
 try:
-    ee.Initialize(project='try-spasial')
-except:
-    ee.Authenticate()
-    ee.Initialize(project='try-spasial')
+    logger.info(f"Initializing Earth Engine with project: {config.GEE_PROJECT_ID}")
+    ee.Initialize(project=config.GEE_PROJECT_ID)
+    logger.info("Earth Engine initialized successfully")
+except Exception as e:
+    logger.warning(f"Failed to initialize with project {config.GEE_PROJECT_ID}: {str(e)}")
+    logger.info("Attempting authentication and re-initialization...")
+    try:
+        ee.Authenticate()
+        ee.Initialize(project=config.GEE_PROJECT_ID)
+        logger.info("Earth Engine authenticated and initialized successfully")
+    except Exception as auth_error:
+        logger.error(f"Failed to authenticate and initialize Earth Engine: {str(auth_error)}")
+        raise
 
 # Load model saat startup
+logger.info("Loading trained model at startup...")
 load_trained_model()
 
 # Route utama
 @app.route('/')
 def home():
     try:
-        # Load collection dengan indeks vegetasi
-        collection = ee.ImageCollection('projects/try-spasial/assets/CollectionImage')
+        # Load collection dengan indeks vegetasi menggunakan konfigurasi dari environment
+        collection = ee.ImageCollection(config.COLLECTION_ASSET)
         collection_with_indices = collection.map(calculate_vegetation_indices)
         
         # Buat mosaic dari seluruh koleksi
@@ -907,6 +918,7 @@ def home():
         return render_template('index.html', map_html=map_html)
     
     except Exception as e:
+        logger.error(f"Error in home route: {str(e)}")
         return f"Error: {str(e)}", 500
 
 @app.route('/rice-phase')
@@ -1021,18 +1033,6 @@ def classify_by_date():
     except Exception as e:
         logger.error(f"Error in real-time classification: {str(e)}")
         return jsonify({'error': str(e)}), 500
-        
-        return jsonify({
-            'success': True,
-            'map_html': map_html,
-            'date_range': f'{start_date} to {end_date}',
-            'stats': stats,
-            'message': f'Klasifikasi berhasil untuk periode {start_date} - {end_date}'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error in date-based classification: {str(e)}")
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/dasarian-info/<int:dasarian>')
 def get_dasarian_info_api(dasarian):
@@ -1124,7 +1124,7 @@ def model_info():
             'max_depth': model.max_depth,
             'min_samples_split': model.min_samples_split,
             'min_samples_leaf': model.min_samples_leaf,
-            'model_path': MODEL_PATH,
+            'model_path': config.MODEL_PATH,
             'bands_used': BANDS_SELECTED
         }
         
@@ -1321,45 +1321,23 @@ def check_availability():
 def collection_info():
     """API endpoint untuk mendapatkan informasi collection dengan indeks"""
     try:
-        collection = ee.ImageCollection('projects/try-spasial/assets/CollectionImage')
+        collection = ee.ImageCollection(config.COLLECTION_ASSET)
         collection_with_indices = collection.map(calculate_vegetation_indices).limit(3)
         
         # Dapatkan informasi dasar
         total_size = collection.size().getInfo()
         
         # Dapatkan sample properties
-        sample_images = collection_with_indices.toList(3)
-        sample_properties = []
-        
-        # Ensure total_size is valid
-        if total_size is None:
-            total_size = 0
-        
-        for i in range(min(3, total_size)):
-            img = ee.Image(sample_images.get(i))
-            properties = {
-                'system:time_start': img.get('system:time_start').getInfo(),
-                'bands': img.bandNames().getInfo()
-            }
-            sample_properties.append(properties)
-        
-        # Info model
-        model = load_trained_model()
-        model_status = {
-            'loaded': model is not None,
-            'features': list(model.feature_names_in_) if model else [],
-            'classes': list(model.classes_) if model else []
-        }
+        sample_properties = collection_with_indices.first().getInfo().get('properties', {})
         
         return jsonify({
-            'total_images': total_size,
-            'sample_properties': sample_properties,
-            'model_status': model_status,
-            'bands_selected': BANDS_SELECTED
+            'success': True,
+            'total_size': total_size,
+            'sample_properties': sample_properties
         })
-    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run()
+    # Menjalankan server di port yang diinginkan
+    app.run(host='0.0.0.0', port=5000)
