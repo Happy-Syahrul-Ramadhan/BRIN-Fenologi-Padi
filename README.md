@@ -1,5 +1,3 @@
-
-=======
 # 🌾 Aplikasi Klasifikasi Fenologi Padi
 
 Aplikasi web untuk klasifikasi fenologi (fase pertumbuhan) padi menggunakan data Sentinel-1 SAR dan model Random Forest. Aplikasi ini dikembangkan untuk membantu monitoring dan analisis pertumbuhan tanaman padi di wilayah Indramayu, Jawa Barat.
