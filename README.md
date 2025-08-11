@@ -441,4 +441,3 @@ Distributed under the MIT License. See `LICENSE` for more information.
 **📊 Data Usage**: Aplikasi ini menggunakan data Sentinel-1 yang tersedia bebas melalui Google Earth Engine. Penggunaan data harus sesuai dengan terms of service ESA dan Google.
 
 **🔒 Privacy**: Aplikasi tidak menyimpan data pribadi pengguna. Semua processing dilakukan secara real-time dan tidak ada data yang disimpan permanent di server.
->>>>>>> 6265e9beff55997f4378b6147f4f4e90d98df276
