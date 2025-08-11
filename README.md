@@ -233,12 +233,11 @@ Semua endpoint mengembalikan error dalam format:
 ```
 fenologi-2/
 ├── app.py                 # Aplikasi Flask utama
-├── rf_model.pkl          # Model Random Forest terlatih
+├── rf_model.pkl          # Model
 ├── templates/            # Template HTML
 │   ├── base.html        # Template dasar
 │   ├── index.html       # Halaman beranda
 │   └── rice_phase.html  # Halaman klasifikasi utama
-├── static/              # File statis (jika ada)
 ├── __pycache__/         # Python cache
 ├── .git/               # Git repository
 └── README.md           # Dokumentasi ini
