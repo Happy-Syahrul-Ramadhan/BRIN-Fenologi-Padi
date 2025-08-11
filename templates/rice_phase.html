@@ -431,6 +431,55 @@
                 </div>
                 <div class="card-body">
                     
+                    <!-- Data Source Controls -->
+                    <div class="controls-section">
+                        <h6><i class="fas fa-database"></i> Sumber Data</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Pilih Sumber Data:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="dataSource" 
+                                       id="defaultCollection" value="default" checked>
+                                <label class="form-check-label" for="defaultCollection">
+                                    Gunakan Data Default (Sentinel-1)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="dataSource" 
+                                       id="customCollection" value="custom">
+                                <label class="form-check-label" for="customCollection">
+                                    Gunakan Data Custom
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="customCollectionInput" style="display: none;">
+                            <div class="mb-3">
+                                <label for="collectionAsset" class="form-label">
+                                    Asset Path Collection GEE:
+                                    <i class="fas fa-question-circle" data-bs-toggle="tooltip" 
+                                       title="Masukkan path lengkap asset Google Earth Engine, contoh: users/username/my_collection"></i>
+                                </label>
+                                <input type="text" class="form-control form-control-sm" 
+                                       id="collectionAsset" 
+                                       placeholder="contoh: users/username/my_collection">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="collectionType" class="form-label">Tipe Collection:</label>
+                                <select class="form-select form-select-sm" id="collectionType">
+                                    <option value="sentinel1">Sentinel-1 (SAR)</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn btn-info btn-sm w-100 mb-2" onclick="validateCustomCollection()">
+                                <i class="fas fa-check-circle"></i> Validasi Collection
+                            </button>
+                            
+                            <div id="collectionValidationResult" class="alert" style="display: none;"></div>
+                        </div>
+                    </div>
+
                     <!-- Dasarian Controls -->
                     <div class="controls-section">
                         <h6><i class="fas fa-calendar"></i> Kontrol Dasarian</h6>
@@ -685,14 +734,27 @@ async function classifySingleDasarian() {
     showLoading();
     
     try {
+        // Get data source configuration
+        let dataSource;
+        try {
+            dataSource = getCurrentDataSource();
+        } catch (error) {
+            showError(error.message);
+            hideLoading();
+            return;
+        }
+        
+        const requestBody = {
+            dasarian: parseInt(dasarian),
+            ...dataSource
+        };
+        
         const response = await fetch('/api/get_classification_map_dasarian', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                dasarian: parseInt(dasarian)
-            })
+            body: JSON.stringify(requestBody)
         });
         
         const data = await response.json();
@@ -701,7 +763,8 @@ async function classifySingleDasarian() {
             // Update map
             document.getElementById('mapContainer').innerHTML = data.map_html;
             const displayName = dasarianInfo ? dasarianInfo.display_name : `Dasarian ${dasarian}`;
-            showSuccess(`Klasifikasi ${displayName} berhasil dimuat`);
+            const sourceText = dataSource.source_type === 'custom' ? ` (Custom: ${dataSource.collection_type})` : '';
+            showSuccess(`Klasifikasi ${displayName}${sourceText} berhasil dimuat`);
             updateDasarianInfo(dasarian);
             
             // Display statistics if available
@@ -734,15 +797,28 @@ async function classifyByDate() {
     showLoading();
     
     try {
+        // Get data source configuration
+        let dataSource;
+        try {
+            dataSource = getCurrentDataSource();
+        } catch (error) {
+            showError(error.message);
+            hideLoading();
+            return;
+        }
+        
+        const requestBody = {
+            start_date: startDate,
+            end_date: endDate,
+            ...dataSource
+        };
+        
         const response = await fetch('/api/classify-by-date', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                start_date: startDate,
-                end_date: endDate
-            })
+            body: JSON.stringify(requestBody)
         });
         
         const data = await response.json();
@@ -753,12 +829,13 @@ async function classifyByDate() {
                 document.getElementById('mapContainer').innerHTML = data.map_html;
             }
             
-            showSuccess(`Klasifikasi periode ${startDate} - ${endDate} berhasil`);
+            const sourceText = dataSource.source_type === 'custom' ? ` (Custom: ${dataSource.collection_type})` : '';
+            showSuccess(`Klasifikasi periode ${startDate} - ${endDate}${sourceText} berhasil`);
             
             // Update info
             document.getElementById('classificationInfo').innerHTML = `
                 <p class="mb-1"><strong>Periode Tanggal</strong></p>
-                <p class="small mb-0 text-muted">${startDate} - ${endDate}</p>
+                <p class="small mb-0 text-muted">${startDate} - ${endDate}${sourceText}</p>
             `;
             
             if (data.stats) {
@@ -941,6 +1018,97 @@ function toggleFullscreen() {
     }
 }
 
+// Handle data source selection
+function toggleCustomCollectionInput() {
+    const customRadio = document.getElementById('customCollection');
+    const customInput = document.getElementById('customCollectionInput');
+    const validationResult = document.getElementById('collectionValidationResult');
+    
+    if (customRadio.checked) {
+        customInput.style.display = 'block';
+    } else {
+        customInput.style.display = 'none';
+        validationResult.style.display = 'none';
+    }
+}
+
+// Validate custom collection
+async function validateCustomCollection() {
+    const collectionAsset = document.getElementById('collectionAsset').value.trim();
+    const collectionType = document.getElementById('collectionType').value;
+    const resultDiv = document.getElementById('collectionValidationResult');
+    
+    if (!collectionAsset) {
+        resultDiv.className = 'alert alert-warning';
+        resultDiv.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Masukkan path asset collection terlebih dahulu';
+        resultDiv.style.display = 'block';
+        return;
+    }
+    
+    // Show loading state
+    resultDiv.className = 'alert alert-info';
+    resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memvalidasi collection...';
+    resultDiv.style.display = 'block';
+    
+    try {
+        const response = await fetch('/api/validate-custom-collection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                collection_asset: collectionAsset,
+                collection_type: collectionType
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultDiv.className = 'alert alert-success';
+            resultDiv.innerHTML = `
+                <i class="fas fa-check-circle"></i> Collection valid!<br>
+                <small>
+                    <strong>Jumlah image:</strong> ${data.info.image_count}<br>
+                    <strong>Bands:</strong> ${data.info.bands.join(', ')}<br>
+                    <strong>Periode:</strong> ${data.info.date_range.start} s/d ${data.info.date_range.end}
+                </small>
+            `;
+        } else {
+            resultDiv.className = 'alert alert-danger';
+            resultDiv.innerHTML = `<i class="fas fa-times-circle"></i> ${data.error}`;
+        }
+    } catch (error) {
+        console.error('Error validating collection:', error);
+        resultDiv.className = 'alert alert-danger';
+        resultDiv.innerHTML = '<i class="fas fa-times-circle"></i> Gagal memvalidasi collection';
+    }
+}
+
+// Get current data source configuration
+function getCurrentDataSource() {
+    const isCustom = document.getElementById('customCollection').checked;
+    
+    if (isCustom) {
+        const collectionAsset = document.getElementById('collectionAsset').value.trim();
+        const collectionType = document.getElementById('collectionType').value;
+        
+        if (!collectionAsset) {
+            throw new Error('Path asset collection harus diisi untuk data custom');
+        }
+        
+        return {
+            source_type: 'custom',
+            collection_asset: collectionAsset,
+            collection_type: collectionType
+        };
+    } else {
+        return {
+            source_type: 'default'
+        };
+    }
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     // Load dasarian options first
@@ -969,6 +1137,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
     document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
+    
+    // Add event listeners for data source radio buttons
+    document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
+        radio.addEventListener('change', toggleCustomCollectionInput);
+    });
+    
+    // Initialize tooltips if Bootstrap is available
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
 });
 
 // Keyboard shortcuts

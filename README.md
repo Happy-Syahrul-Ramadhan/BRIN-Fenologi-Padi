@@ -24,6 +24,18 @@ Aplikasi web untuk klasifikasi fenologi (fase pertumbuhan) padi menggunakan data
 - 36 periode dasarian dalam satu tahun (Januari P1 - Desember P3)
 - Interface slider dan dropdown untuk pemilihan periode
 
+### 📅 Klasifikasi Berdasarkan Tanggal
+- Klasifikasi fleksibel dengan rentang tanggal custom
+- Data real-time dari Sentinel-1
+- Input tanggal mulai dan akhir
+
+### 🗄️ Custom Image Collection Support ⭐ NEW
+- **Dukungan data custom** dari Google Earth Engine
+- **Multi-platform support**: Sentinel-1, Sentinel-2, Landsat, dan data custom
+- **Validasi otomatis** collection sebelum digunakan
+- **Fleksibilitas tinggi** untuk penelitian spesifik
+- Lihat [CUSTOM_COLLECTION_GUIDE.md](CUSTOM_COLLECTION_GUIDE.md) untuk panduan detail
+
 ### 🎯 Fase Pertumbuhan Padi
 
 ### 📊 Analisis dan Statistik
@@ -147,18 +159,27 @@ Akses aplikasi di: http://localhost:5000
 
 ### 3. Workflow Klasifikasi
 
-#### Klasifikasi Dasarian:
-1. Pilih dasarian menggunakan slider atau dropdown
-2. Klik tombol "Mulai Klasifikasi"
-3. Tunggu proses loading
-4. Lihat hasil di peta dan panel statistik
+#### Klasifikasi dengan Data Default:
+1. Pilih "Gunakan Data Default (Sentinel-1)"
+2. Pilih dasarian menggunakan slider/dropdown ATAU input tanggal
+3. Klik tombol "Mulai Klasifikasi" atau "Klasifikasi by Tanggal"
+4. Tunggu proses loading
+5. Lihat hasil di peta dan panel statistik
 
+#### Klasifikasi dengan Custom Collection: ⭐ NEW
+1. Pilih "Gunakan Data Custom"
+2. Input path asset collection GEE (contoh: `users/username/my_collection`)
+3. Pilih tipe collection (Sentinel-1, Sentinel-2, Landsat, atau Custom)
+4. Klik "Validasi Collection" untuk memastikan data dapat diakses
+5. Setelah validasi berhasil, lakukan klasifikasi seperti biasa
+6. Hasil akan menggunakan data custom Anda
 
 #### Panel Statistik:
 - Total area per fase dalam hektar
 - Persentase distribusi setiap fase
 - Jumlah kelas yang terdeteksi
 - Fase dominan di area studi
+- Informasi sumber data yang digunakan
 
 ## 📚 API Documentation
 

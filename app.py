@@ -318,94 +318,137 @@ def get_sentinel1_data_realtime(start_date, end_date, aoi):
 
 def remove_border_noise(img):
     """Remove border noise dari citra Sentinel-1"""
-    edge = img.lt(-35)  # Threshold dalam dB
-    properties = img.propertyNames()
-    maskedImage = img.mask().And(edge.Not())
-    return img.updateMask(maskedImage).copyProperties(img, properties)
+    try:
+        # Check if image has VV band (for threshold)
+        band_names = img.bandNames()
+        has_vv = band_names.contains('VV')
+        
+        # Only apply if VV band exists, otherwise return original
+        cleaned_img = ee.Algorithms.If(
+            has_vv,
+            # Apply border noise removal
+            ee.Image(img).updateMask(
+                img.mask().And(img.select('VV').gt(-35))
+            ).copyProperties(img, img.propertyNames()),
+            # Return original if no VV band
+            img
+        )
+        
+        return ee.Image(cleaned_img)
+    except Exception as e:
+        logger.error(f"Error in remove_border_noise: {str(e)}")
+        return img
 
 def terrain_correction(img):
     """Koreksi terrain/incident angle (Gamma Nought)"""
-    gamma0 = img.expression(
-        'i - 10 * log10(cos(angle * pi / 180))', {
-            'i': img.select(['VV', 'VH']),
-            'angle': img.select('angle'),
-            'pi': 3.14159265359
-        }
-    ).toFloat()
-    return img.addBands(gamma0, None, True)
+    try:
+        # Check if raw bands exist
+        band_names = img.bandNames()
+        has_vv = band_names.contains('VV')
+        has_vh = band_names.contains('VH')
+        
+        # Only apply if raw VV/VH bands exist
+        corrected_img = ee.Algorithms.If(
+            ee.Algorithms.And(has_vv, has_vh),
+            # Apply terrain correction
+            img.expression(
+                'i - 10 * log10(cos(angle * pi / 180))', {
+                    'i': img.select(['VV', 'VH']),
+                    'angle': img.select('angle'),
+                    'pi': 3.14159265359
+                }
+            ).toFloat().copyProperties(img, img.propertyNames()),
+            # Return original if no raw bands
+            img
+        )
+        
+        return ee.Image(corrected_img)
+    except Exception as e:
+        logger.error(f"Error in terrain_correction: {str(e)}")
+        return img
 
 def speckle_filter(img):
     """Aplikasi speckle filter menggunakan median filter"""
-    properties = img.propertyNames()
-    return img.focalMedian(5).copyProperties(img, properties)
+    try:
+        properties = img.propertyNames()
+        return img.focalMedian(5).copyProperties(img, properties)
+    except Exception as e:
+        logger.error(f"Error in speckle_filter: {str(e)}")
+        return img
 
 def calculate_vegetation_indices_s1(img):
     """
     Menghitung indeks vegetasi dari citra Sentinel-1 yang sudah diproses
     Menggunakan pendekatan yang sama dengan kode JavaScript
     """
-    # Cek band yang tersedia
-    band_names = img.bandNames()
-    
-    # Jika sudah ada VV_int dan VH_int (dari koleksi yang sudah diproses)
-    has_vv_int = band_names.contains('VV_int')
-    has_vh_int = band_names.contains('VH_int')
-    has_vv = band_names.contains('VV')
-    has_vh = band_names.contains('VH')
-    
-    # Gunakan kondisional EE tanpa .getInfo()
-    vv_int = ee.Algorithms.If(
-        has_vv_int.And(has_vh_int),
-        # Gunakan data linear yang sudah ada
-        img.select('VV_int').toFloat(),
-        ee.Algorithms.If(
-            has_vv.And(has_vh),
-            # Konversi dari dB ke linear untuk data mentah Sentinel-1
-            img.select('VV').toFloat().expression('10**(vv / 10)', {'vv': img.select('VV').toFloat()}).rename('VV_int').toFloat(),
-            ee.Image.constant(0).rename('VV_int').toFloat()
+    try:
+        # Cek band yang tersedia
+        band_names = img.bandNames()
+        
+        # Jika sudah ada VV_int dan VH_int (dari koleksi yang sudah diproses)
+        has_vv_int = band_names.contains('VV_int')
+        has_vh_int = band_names.contains('VH_int')
+        has_vv = band_names.contains('VV')
+        has_vh = band_names.contains('VH')
+        
+        # Gunakan kondisional EE tanpa .getInfo()
+        vv_int = ee.Algorithms.If(
+            ee.Algorithms.And(has_vv_int, has_vh_int),
+            # Gunakan data linear yang sudah ada
+            img.select('VV_int').toFloat(),
+            ee.Algorithms.If(
+                ee.Algorithms.And(has_vv, has_vh),
+                # Konversi dari dB ke linear untuk data mentah Sentinel-1
+                img.select('VV').toFloat().expression('10**(vv / 10)', {'vv': img.select('VV').toFloat()}).rename('VV_int').toFloat(),
+                ee.Image.constant(0).rename('VV_int').toFloat()
+            )
         )
-    )
-    
-    vh_int = ee.Algorithms.If(
-        has_vv_int.And(has_vh_int),
-        # Gunakan data linear yang sudah ada
-        img.select('VH_int').toFloat(),
-        ee.Algorithms.If(
-            has_vv.And(has_vh),
-            # Konversi dari dB ke linear untuk data mentah Sentinel-1
-            img.select('VH').toFloat().expression('10**(vh / 10)', {'vh': img.select('VH').toFloat()}).rename('VH_int').toFloat(),
-            ee.Image.constant(0).rename('VH_int').toFloat()
+        
+        vh_int = ee.Algorithms.If(
+            ee.Algorithms.And(has_vv_int, has_vh_int),
+            # Gunakan data linear yang sudah ada
+            img.select('VH_int').toFloat(),
+            ee.Algorithms.If(
+                ee.Algorithms.And(has_vv, has_vh),
+                # Konversi dari dB ke linear untuk data mentah Sentinel-1
+                img.select('VH').toFloat().expression('10**(vh / 10)', {'vh': img.select('VH').toFloat()}).rename('VH_int').toFloat(),
+                ee.Image.constant(0).rename('VH_int').toFloat()
+            )
         )
-    )
+        
+        # Cast hasil kondisional ke Image
+        vv_int = ee.Image(vv_int)
+        vh_int = ee.Image(vh_int)
+        
+        # Hitung indeks menggunakan data linear
+        RPI = vh_int.divide(vv_int.add(0.001)).rename('RPI').toFloat()
+        API = vv_int.add(vh_int).divide(2).rename('API').toFloat() 
+        NDPI = vv_int.subtract(vh_int).divide(vv_int.add(vh_int).add(0.001)).rename('NDPI').toFloat()
+        RVI = vh_int.multiply(4).divide(vv_int.add(vh_int).add(0.001)).rename('RVI').toFloat()
+        
+        # Pastikan ada band angle
+        has_angle = band_names.contains('angle')
+        angle = ee.Algorithms.If(
+            has_angle,
+            img.select('angle'),
+            ee.Image.constant(23).rename('angle')
+        )
+        angle = ee.Image(angle)
+        
+        # Gabungkan semua band dalam format linear
+        result = ee.Image.cat([
+            vv_int,
+            vh_int,
+            angle,
+            RPI, API, NDPI, RVI
+        ]).copyProperties(img, img.propertyNames())
+        
+        return result
     
-    # Cast hasil kondisional ke Image
-    vv_int = ee.Image(vv_int)
-    vh_int = ee.Image(vh_int)
-    
-    # Hitung indeks menggunakan data linear
-    RPI = vh_int.divide(vv_int.add(0.001)).rename('RPI').toFloat()
-    API = vv_int.add(vh_int).divide(2).rename('API').toFloat() 
-    NDPI = vv_int.subtract(vh_int).divide(vv_int.add(vh_int).add(0.001)).rename('NDPI').toFloat()
-    RVI = vh_int.multiply(4).divide(vv_int.add(vh_int).add(0.001)).rename('RVI').toFloat()
-    
-    # Pastikan ada band angle
-    has_angle = band_names.contains('angle')
-    angle = ee.Algorithms.If(
-        has_angle,
-        img.select('angle'),
-        ee.Image.constant(23).rename('angle')
-    )
-    angle = ee.Image(angle)
-    
-    # Gabungkan semua band dalam format linear
-    result = ee.Image.cat([
-        vv_int,
-        vh_int,
-        angle,
-        RPI, API, NDPI, RVI
-    ]).copyProperties(img, img.propertyNames())
-    
-    return result
+    except Exception as e:
+        logger.error(f"Error in calculate_vegetation_indices_s1: {str(e)}")
+        # Fallback: return original image if processing fails
+        return img
 
 def calculate_vegetation_indices(image):
     """
@@ -982,27 +1025,56 @@ def rice_phase_view():
 @app.route('/api/classify-by-date', methods=['POST'])
 @handle_ee_errors
 def classify_by_date():
-    """API endpoint untuk klasifikasi berdasarkan tanggal menggunakan Sentinel-1 real-time"""
+    """API endpoint untuk klasifikasi berdasarkan tanggal dengan dukungan custom collection"""
     try:
         data = request.get_json()
         start_date = data.get('start_date')
         end_date = data.get('end_date')
+        source_type = data.get('source_type', 'default')
+        collection_asset = data.get('collection_asset')
+        collection_type = data.get('collection_type', 'sentinel1')
         
         if not start_date or not end_date:
             return jsonify({'error': 'Start date and end date are required'}), 400
         
-        logger.info(f"Classifying using real-time Sentinel-1 data for {start_date} to {end_date}")
+        logger.info(f"Classifying for {start_date} to {end_date}, source: {source_type}")
         
         # Cek model
         model = load_trained_model()
         if model is None:
             return jsonify({'error': 'Model tidak tersedia'}), 500
         
-        # Gunakan data Sentinel-1 real-time
-        classified_image = classify_with_date_filter_realtime(start_date, end_date)
-        
-        if classified_image is None:
-            return jsonify({'error': 'Tidak ada data Sentinel-1 untuk periode tersebut'}), 404
+        if source_type == 'custom':
+            if not collection_asset:
+                return jsonify({'error': 'Collection asset harus diisi untuk data custom'}), 400
+                
+            logger.info(f"Using custom collection: {collection_asset} (type: {collection_type})")
+            
+            # Use custom collection
+            classified_image, area_stats = classify_with_custom_collection(
+                collection_asset, 
+                collection_type,
+                start_date=start_date, 
+                end_date=end_date
+            )
+            data_source = f'Custom Collection ({collection_type})'
+            
+        else:
+            # Use default Sentinel-1 real-time data
+            logger.info("Using Sentinel-1 real-time data")
+            classified_image = classify_with_date_filter_realtime(start_date, end_date)
+            
+            if classified_image is None:
+                return jsonify({'error': 'Tidak ada data Sentinel-1 untuk periode tersebut'}), 404
+            
+            # Calculate area statistics for default collection
+            area_stats = None
+            try:
+                area_stats = calculate_area_statistics(classified_image)
+            except Exception as stats_error:
+                logger.warning(f"Could not compute area stats: {str(stats_error)}")
+                
+            data_source = 'Sentinel-1 Real-time'
         
         # Create map with classification
         my_map = create_map(
@@ -1014,24 +1086,17 @@ def classify_by_date():
         # Convert to HTML
         map_html = my_map._repr_html_()
         
-        # Calculate area statistics
-        area_stats = None
-        try:
-            area_stats = calculate_area_statistics(classified_image)
-        except Exception as stats_error:
-            logger.warning(f"Could not compute area stats: {str(stats_error)}")
-        
         return jsonify({
             'success': True,
             'map_html': map_html,
-            'data_source': 'Sentinel-1 Real-time',
+            'data_source': data_source,
             'date_range': f'{start_date} to {end_date}',
             'area_stats': area_stats,
-            'message': f'Klasifikasi berhasil menggunakan data Sentinel-1 real-time untuk periode {start_date} - {end_date}'
+            'message': f'Klasifikasi berhasil menggunakan {data_source} untuk periode {start_date} - {end_date}'
         })
         
     except Exception as e:
-        logger.error(f"Error in real-time classification: {str(e)}")
+        logger.error(f"Error in date-based classification: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/dasarian-info/<int:dasarian>')
@@ -1060,18 +1125,49 @@ def get_dasarian_info_api(dasarian):
 @app.route('/api/get_classification_map_dasarian', methods=['POST'])
 @handle_ee_errors  
 def get_classification_map_dasarian():
-    """API endpoint untuk klasifikasi berdasarkan dasarian menggunakan asset collection"""
+    """API endpoint untuk klasifikasi berdasarkan dasarian dengan dukungan custom collection"""
     try:
         data = request.get_json()
         dasarian = data.get('dasarian', 1)
+        source_type = data.get('source_type', 'default')
+        collection_asset = data.get('collection_asset')
+        collection_type = data.get('collection_type', 'sentinel1')
         
-        logger.info(f"Classifying using asset collection for dasarian: {dasarian}")
+        logger.info(f"Classifying for dasarian: {dasarian}, source: {source_type}")
         
-        # Gunakan collection asset
-        classified_image = classify_with_dasarian_filter_asset(dasarian, dasarian)
-        
-        if classified_image is None:
-            return jsonify({'error': 'Gagal klasifikasi dasarian'}), 500
+        if source_type == 'custom':
+            if not collection_asset:
+                return jsonify({'error': 'Collection asset harus diisi untuk data custom'}), 400
+                
+            logger.info(f"Using custom collection: {collection_asset} (type: {collection_type})")
+            
+            # Use custom collection
+            classified_image, area_stats = classify_with_custom_collection(
+                collection_asset, 
+                collection_type,
+                dasarian_start=dasarian, 
+                dasarian_end=dasarian
+            )
+            data_source = f'Custom Collection ({collection_type})'
+            
+        else:
+            # Use default asset collection
+            logger.info("Using default asset collection")
+            classified_image = classify_with_dasarian_filter_asset(dasarian, dasarian)
+            
+            if classified_image is None:
+                return jsonify({'error': 'Gagal klasifikasi dasarian'}), 500
+                
+            # Calculate area statistics for default collection
+            area_stats = None
+            try:
+                area_stats = calculate_area_statistics(classified_image)
+                if area_stats:
+                    logger.info("Area statistics calculated successfully")
+            except Exception as stats_error:
+                logger.warning(f"Could not calculate area stats: {str(stats_error)}")
+                
+            data_source = 'Default Asset Collection'
         
         # Create map with classification
         dasarian_filter = (dasarian, dasarian)
@@ -1083,29 +1179,20 @@ def get_classification_map_dasarian():
         # Convert to HTML
         map_html = my_map._repr_html_()
         
-        # Calculate area statistics
-        area_stats = None
-        try:
-            area_stats = calculate_area_statistics(classified_image)
-            if area_stats:
-                logger.info("Area statistics calculated successfully")
-        except Exception as stats_error:
-            logger.warning(f"Could not calculate area stats: {str(stats_error)}")
-        
         dasarian_info = get_dasarian_info(dasarian)
         
         return jsonify({
             'success': True,
             'map_html': map_html,
-            'data_source': 'Asset Collection',
+            'data_source': data_source,
             'dasarian': dasarian,
             'area_stats': area_stats,
             'dasarian_info': dasarian_info,
-            'message': f"Klasifikasi berhasil menggunakan asset collection untuk {dasarian_info['display_name']}"
+            'message': f"Klasifikasi berhasil menggunakan {data_source} untuk {dasarian_info['display_name']}"
         })
         
     except Exception as e:
-        logger.error(f"Error in asset classification: {str(e)}")
+        logger.error(f"Error in dasarian classification: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/model-info')
@@ -1337,6 +1424,315 @@ def collection_info():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/validate-custom-collection', methods=['POST'])
+@handle_ee_errors
+def validate_custom_collection():
+    """Validate user's custom image collection"""
+    try:
+        data = request.get_json()
+        collection_asset = data.get('collection_asset', '').strip()
+        collection_type = data.get('collection_type', 'sentinel1')
+        
+        if not collection_asset:
+            return jsonify({
+                'success': False,
+                'error': 'Path asset collection tidak boleh kosong'
+            }), 400
+        
+        # Try to access the collection
+        try:
+            collection = ee.ImageCollection(collection_asset)
+            
+            # Get basic info
+            image_count = collection.size().getInfo()
+            
+            if image_count == 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Collection kosong atau tidak dapat diakses'
+                }), 400
+            
+            # Get first image info
+            first_image = collection.first()
+            first_image_info = first_image.getInfo()
+            
+            # Get bands
+            bands = first_image_info.get('bands', [])
+            band_names = [band.get('id', 'unknown') for band in bands]
+            
+            # Get date range - using simple approach
+            try:
+                # Get first and last image dates
+                first_img = collection.sort('system:time_start').first()
+                last_img = collection.sort('system:time_start', False).first()
+                
+                first_date = first_img.get('system:time_start').getInfo()
+                last_date = last_img.get('system:time_start').getInfo()
+                
+                min_date = datetime.fromtimestamp(first_date / 1000).strftime('%Y-%m-%d')
+                max_date = datetime.fromtimestamp(last_date / 1000).strftime('%Y-%m-%d')
+            except:
+                # Fallback if date extraction fails
+                min_date = "N/A"
+                max_date = "N/A"
+            
+            # Validate bands based on collection type
+            validation_result = validate_collection_bands(band_names, collection_type)
+            
+            if not validation_result['valid']:
+                return jsonify({
+                    'success': False,
+                    'error': f'Collection tidak sesuai dengan tipe {collection_type}: {validation_result["message"]}'
+                }), 400
+            
+            return jsonify({
+                'success': True,
+                'info': {
+                    'image_count': image_count,
+                    'bands': band_names,
+                    'date_range': {
+                        'start': min_date,
+                        'end': max_date
+                    },
+                    'collection_type': collection_type,
+                    'validation': validation_result
+                }
+            })
+            
+        except Exception as ee_error:
+            logger.error(f"Error accessing collection {collection_asset}: {str(ee_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'Tidak dapat mengakses collection: {str(ee_error)}'
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error in validate_custom_collection: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'Terjadi kesalahan: {str(e)}'
+        }), 500
+
+def validate_collection_bands(band_names, collection_type):
+    """Validate that collection has required bands for the specified type"""
+    required_bands = {
+        'sentinel1': ['VV', 'VH'],
+        'sentinel2': ['B2', 'B3', 'B4', 'B8'],
+        'landsat': ['B2', 'B3', 'B4', 'B5'],
+        'custom': []  # No specific requirement for custom
+    }
+    
+    # Alternative band names that are also acceptable
+    alternative_bands = {
+        'sentinel1': {
+            'VV': ['VV', 'VV_int', 'vv', 'VV_filtered'],
+            'VH': ['VH', 'VH_int', 'vh', 'VH_filtered']
+        },
+        'sentinel2': {
+            'B2': ['B2', 'blue', 'Blue'],
+            'B3': ['B3', 'green', 'Green'], 
+            'B4': ['B4', 'red', 'Red'],
+            'B8': ['B8', 'nir', 'NIR']
+        },
+        'landsat': {
+            'B2': ['B2', 'blue', 'Blue', 'SR_B2'],
+            'B3': ['B3', 'green', 'Green', 'SR_B3'],
+            'B4': ['B4', 'red', 'Red', 'SR_B4'],
+            'B5': ['B5', 'nir', 'NIR', 'SR_B5']
+        }
+    }
+    
+    if collection_type not in required_bands:
+        return {
+            'valid': False,
+            'message': f'Tipe collection tidak dikenali: {collection_type}'
+        }
+    
+    required = required_bands[collection_type]
+    
+    if collection_type == 'custom':
+        # For custom, just check if there are some bands
+        return {
+            'valid': len(band_names) > 0,
+            'message': 'OK - Custom collection' if len(band_names) > 0 else 'Tidak ada bands ditemukan'
+        }
+    
+    # Check if required bands or their alternatives are present
+    missing_bands = []
+    found_bands = []
+    
+    for required_band in required:
+        alternatives = alternative_bands.get(collection_type, {}).get(required_band, [required_band])
+        
+        # Check if any alternative is present
+        band_found = False
+        for alt_band in alternatives:
+            if alt_band in band_names:
+                found_bands.append(f"{required_band}({alt_band})")
+                band_found = True
+                break
+        
+        if not band_found:
+            missing_bands.append(required_band)
+    
+    if missing_bands:
+        return {
+            'valid': False,
+            'message': f'Bands yang diperlukan tidak ditemukan: {", ".join(missing_bands)}. Tersedia: {", ".join(band_names)}'
+        }
+    
+    return {
+        'valid': True,
+        'message': f'OK - Bands ditemukan: {", ".join(found_bands)}'
+    }
+
+def get_custom_collection_data(collection_asset, collection_type, start_date=None, end_date=None, aoi=None):
+    """Get and process custom collection data"""
+    try:
+        collection = ee.ImageCollection(collection_asset)
+        logger.info(f"Custom collection loaded: {collection_asset}")
+        
+        # Apply filters if provided
+        if start_date and end_date:
+            collection = collection.filterDate(start_date, end_date)
+            logger.info(f"Filtered by date: {start_date} to {end_date}")
+        if aoi:
+            collection = collection.filterBounds(aoi)
+            logger.info(f"Filtered by AOI")
+        
+        # Log jumlah image setelah filter
+        try:
+            count = collection.size().getInfo()
+            logger.info(f"Custom collection image count after filter: {count}")
+            if count == 0:
+                logger.error("Custom collection kosong setelah filter!")
+        except Exception as e:
+            logger.error(f"Tidak bisa mendapatkan jumlah image: {str(e)}")
+        
+        # Process based on collection type
+        if collection_type == 'sentinel1':
+            # Check if collection already has processed bands
+            try:
+                first_img = collection.first()
+                first_bands = first_img.bandNames().getInfo()
+                logger.info(f"First image bands: {first_bands}")
+                
+                # Check if collection already has required indices
+                has_indices = all(band in first_bands for band in ['VV_int', 'VH_int', 'RPI', 'API', 'NDPI', 'RVI'])
+                
+                if has_indices:
+                    logger.info("Collection already has processed indices, skipping preprocessing")
+                else:
+                    # Apply Sentinel-1 specific processing with error handling
+                    logger.info("Starting Sentinel-1 preprocessing pipeline")
+                    collection = collection.map(remove_border_noise)
+                    logger.info("Applied remove_border_noise")
+                    collection = collection.map(terrain_correction)
+                    logger.info("Applied terrain_correction")
+                    collection = collection.map(speckle_filter)
+                    logger.info("Applied speckle_filter")
+                    collection = collection.map(calculate_vegetation_indices_s1)
+                    logger.info("Applied calculate_vegetation_indices_s1")
+            except Exception as proc_error:
+                logger.error(f"Error in Sentinel-1 preprocessing: {str(proc_error)}")
+                # Fallback: use collection as-is without preprocessing
+                logger.warning("Using collection without preprocessing as fallback")
+        elif collection_type in ['sentinel2', 'landsat']:
+            # Apply optical processing
+            try:
+                collection = collection.map(calculate_vegetation_indices)
+                logger.info("Applied optical indices pipeline")
+            except Exception as proc_error:
+                logger.error(f"Error in optical preprocessing: {str(proc_error)}")
+                logger.warning("Using collection without preprocessing as fallback")
+        elif collection_type == 'custom':
+            # For custom, assume indices are already calculated or use as-is
+            logger.info("No additional processing for custom type")
+        
+        return collection
+        
+    except Exception as e:
+        logger.error(f"Error processing custom collection: {str(e)}")
+        raise
+
+def classify_with_custom_collection(collection_asset, collection_type, dasarian_start=None, dasarian_end=None, start_date=None, end_date=None):
+    """Classify using custom collection"""
+    try:
+        # Get AOI
+        aoi = get_indramayu_aoi()
+        
+        # Get custom collection data
+        collection = get_custom_collection_data(
+            collection_asset, 
+            collection_type, 
+            start_date, 
+            end_date, 
+            aoi
+        )
+        
+        # Create composite
+        if dasarian_start and dasarian_end:
+            # For dasarian-based classification
+            composite = collection.median()
+        else:
+            # For date-based classification
+            composite = collection.median()
+        logger.info("Composite (median) created from custom collection")
+        
+        # Ensure required bands for classification
+        required_bands = ['VV_int', 'VH_int', 'RPI', 'API', 'NDPI', 'RVI', 'angle']
+        
+        # Check if composite has required bands - hanya panggil getInfo() sekali
+        try:
+            composite_bands = composite.bandNames().getInfo()
+            logger.info(f"Bands in composite: {composite_bands}")
+        except Exception as e:
+            logger.error(f"Error getting band names: {str(e)}")
+            # Fallback: assume collection is already processed if it's custom
+            if collection_type == 'custom':
+                composite_bands = required_bands  # Assume all required bands are present
+            else:
+                raise Exception(f"Tidak dapat mengakses informasi bands: {str(e)}")
+        
+        missing_bands = [band for band in required_bands if band not in composite_bands]
+        
+        if missing_bands:
+            logger.warning(f"Missing bands for classification: {missing_bands}")
+            # Try to calculate missing indices if possible
+            if collection_type == 'sentinel1':
+                composite = calculate_vegetation_indices_s1(composite)
+                # Update composite_bands after processing
+                try:
+                    composite_bands = composite.bandNames().getInfo()
+                    logger.info(f"Bands after reprocessing: {composite_bands}")
+                except:
+                    # If still fails, assume processing worked
+                    composite_bands = required_bands
+        
+        # Create classifier
+        classifier = create_classifier_from_trained_model()
+        
+        # Select bands for classification
+        available_bands = [band for band in required_bands if band in composite_bands]
+        logger.info(f"Bands used for classification: {available_bands}")
+        
+        if len(available_bands) < 3:  # Minimum bands required
+            raise Exception(f"Tidak cukup bands untuk klasifikasi. Tersedia: {available_bands}")
+        
+        composite_selected = composite.select(available_bands)
+        
+        # Classify
+        classified = composite_selected.classify(classifier)
+        
+        # Calculate statistics
+        area_stats = calculate_area_statistics(classified)
+        
+        return classified, area_stats
+        
+    except Exception as e:
+        logger.error(f"Error in classify_with_custom_collection: {str(e)}")
+        raise
 
 if __name__ == '__main__':
     # Menjalankan server di port yang diinginkan
