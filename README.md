@@ -107,7 +107,7 @@ ubah file `.env.example` di root directory:
 ```env
 FLASK_ENV=development
 FLASK_DEBUG=True
-EE_PROJECT=your project ID
+EE_PROJECT=your project
 ```
 
 ### Google Earth Engine Setup
