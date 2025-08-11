@@ -231,16 +231,21 @@ Semua endpoint mengembalikan error dalam format:
 ## 📁 Struktur Project
 
 ```
-fenologi-2/
+brin-fenologi-padi/
 ├── app.py                 # Aplikasi Flask utama
-├── rf_model.pkl          # Model
+├── model/                 # Folder untuk model
+│   └── rf_model.pkl       # Model
 ├── templates/            # Template HTML
-│   ├── base.html        # Template dasar
-│   ├── index.html       # Halaman beranda
-│   └── rice_phase.html  # Halaman klasifikasi utama
-├── __pycache__/         # Python cache
-├── .git/               # Git repository
-└── README.md           # Dokumentasi ini
+│   ├── base.html         # Template dasar
+│   ├── index.html        # Halaman beranda
+│   └── rice_phase.html   # Halaman klasifikasi utama
+├── __pycache__/          # Python cache
+├── .git/                 # Git repository
+├── .env.example          # Contoh file konfigurasi environment
+├── .gitignore            # File untuk mengabaikan file dan folder tertentu di Git
+├── README.md             # Dokumentasi ini
+└── requirements.txt      # Daftar dependensi yang diperlukan
+
 ```
 
 ### Penjelasan File Utama
