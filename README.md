@@ -115,7 +115,7 @@ earthengine authenticate
 
 ### Environment Variables
 
-ubah file `.env.example` di root directory:
+ubah file `.env.example` menjadi `.env` di root directory:
 ```env
 FLASK_ENV=development
 FLASK_DEBUG=True
